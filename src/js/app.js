@@ -19,6 +19,10 @@ const guess_letters = ["A","B","C","D","E","F","G","H","I","J","K","L","M","N","
 var reduced_input_mode = false;
 var active_screen = "home";
 var grid_drawn = false;
+var modal_elements = [];
+
+var home_menu = [];
+var home_menu_selected = 0;
 
 var guessState = {
     word: 0,
@@ -150,6 +154,8 @@ function shake() {
 
         rects[i + "-" + guessState.word].animate({position: new Vector(x, y)}, 100);
         lbls[i + "-" + guessState.word].animate({position: new Vector(lx, ly)}, 100);
+
+        Vibe.vibrate('double');
     }
 }
 
@@ -184,7 +190,7 @@ function draw_home() {
         
     }
 
-    window_home.add(new UI.Text({
+    home_menu.push(new UI.Text({
         text: "Play",
         font: "gothic-18-bold",
         position: new Vector(0, 70),
@@ -193,26 +199,27 @@ function draw_home() {
         textAlign: "center"
         
     }));
+    window_home.add(home_menu[0]);
 
-    window_home.add(new UI.Text({
+    home_menu.push(new UI.Text({
         text: "About",
         font: "gothic-18-bold",
-        position: new Vector(0, 90),
+        position: new Vector(0, 100),
         color: "#AAAAAA",
         size: new Vector(144,30),
         textAlign: "center"
-        
     }));
+    window_home.add(home_menu[1]);
 
-    window_home.add(new UI.Text({
-        text: "Leaderboard",
-        font: "gothic-18-bold",
-        position: new Vector(0, 110),
-        color: "#AAAAAA",
-        size: new Vector(144,30),
-        textAlign: "center"
+    // window_home.add(new UI.Text({
+    //     text: "Leaderboard",
+    //     font: "gothic-18-bold",
+    //     position: new Vector(0, 110),
+    //     color: "#AAAAAA",
+    //     size: new Vector(144,30),
+    //     textAlign: "center"
         
-    }));
+    // }));
 
     // var lbl = new UI.Text({
     //    text: "",
@@ -226,16 +233,49 @@ function draw_home() {
     window_home.show();
 }
 window_home.on('click', 'select', function() {
-    if (reduced_input_mode) { return }
-    active_screen = "main"
 
-    if (! grid_drawn) {
-        draw_grid();
-        window.add(selectangle);
+    if (home_menu_selected == 0) {
+        //play
+        active_screen = "main"
+        if (! grid_drawn) {
+            draw_grid();
+            window.add(selectangle);
+        } else {
+            window.show()
+        }
     } else {
-        window.show()
+        //about
+        var about_card = new UI.Card({
+            title: 'Wordle for Pebble',
+            style: 'small',
+            scrollable: true,
+            body: 'V1.0 by @Will0. \n Original wordle by /u/powerlanguage. \nThe Pebble app wordlist should be the same as the real wordle!\n\nFuture updates may include a leaderboard and permenant scores. If you have any feedback or feature requests, join the Rebble Discord at rebble.io/discord.\n\nwillmurphy.co.uk'
+        });
+        about_card.show();
     }
-})
+});
+window_home.on('click', 'down', function() {
+    home_menu_selected++;
+    if (home_menu_selected > home_menu.length-1) { home_menu_selected = 0 }
+    for (var i=0;i<home_menu.length;i++) {
+        if (i == home_menu_selected) {
+            home_menu[i].color("black");
+        } else {
+            home_menu[i].color("#AAAAAA");
+        }
+    }
+});
+window_home.on('click', 'up', function() {
+    home_menu_selected--;
+    if (home_menu_selected < 0) { home_menu_selected = home_menu.length - 1 }
+    for (var i=0;i<home_menu.length;i++) {
+        if (i == home_menu_selected) {
+            home_menu[i].color("black");
+        } else {
+            home_menu[i].color("#AAAAAA");
+        }
+    }
+});
 
 window.on('click', 'up', function() {
     if (reduced_input_mode) { return }
@@ -256,7 +296,14 @@ window.on('click', 'up', function() {
 });
 
 window.on('click', 'down', function() {
-    if (reduced_input_mode) { return }
+    if (reduced_input_mode) { 
+        
+        for (var i=0;i<modal_elements.length;i++) {
+            modal_elements[i].animate({position: new Vector(modal_elements[i].position().x, modal_elements[i].position().y + (Feature.resolution().y - 60))})
+        }
+        return
+    
+    }
     console.log('Down clicked!');
     guessState.selected_letter--;
     if (guessState.selected_letter < 0) {
@@ -337,7 +384,7 @@ window.on('click', 'select', function() {
 });
 
 window.on('click', 'back', function() {
-    if (guessState.letter > 0) {
+    if (guessState.letter > 0 && reduced_input_mode == false) {
         console.log('back clicked!');
         guessState.letter--;
         // selectangle.position(new Vector(selectangle.position().x - width, selectangle.position().y))
@@ -381,10 +428,23 @@ function create_won_modal() {
         size: new Vector(100,40),
         textAlign: "center"
     });
+    var win_info = new UI.Text({
+        text: guessState.word + "/6 - " + guess_count_to_comment(guessState.word),
+        font: "gothic-14",
+        position: new Vector(30, Feature.resolution().y),
+        color: "black",
+        size: new Vector(100,40),
+        textAlign: "center"
+    });
     window.add(win_modal);
     window.add(win_title);
+    window.add(win_info);
+    modal_elements.push(win_modal);
+    modal_elements.push(win_title);
+    modal_elements.push(win_info);
     win_modal.animate({position: new Vector(15, 15)})
     win_title.animate({position: new Vector(15, 30)})
+    win_info.animate({position: new Vector(15, 60)})
     reduced_input_mode = true
 }
 
@@ -415,11 +475,32 @@ function create_lost_modal() {
     window.add(lose_modal);
     window.add(lose_title);
     window.add(lose_reveal);
+
+    modal_elements.push(lose_modal);
+    modal_elements.push(lose_title);
+    modal_elements.push(lose_reveal);
+
     lose_modal.animate({position: new Vector(15, 15)})
     lose_title.animate({position: new Vector(15, 30)})
     lose_reveal.animate({position: new Vector(15, 70)})
     reduced_input_mode = true
 
+}
+
+function guess_count_to_comment(num) {
+    var out = {
+        0: "Genius",
+        1: "Magnificent",
+        2: "Impressive",
+        3: "Great",
+        4: "Good",
+        5: "Phew"
+    }
+    if (out.hasOwnProperty(num)) {
+        return out[num]
+    } else {
+        return "wut"
+    }
 }
 
 //Debug
