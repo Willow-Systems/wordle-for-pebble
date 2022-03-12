@@ -1,0 +1,42 @@
+{
+    "targetPlatforms": [
+        "basalt"
+    ], 
+    "uuid": "5f0b5926-29bd-4e9e-aa15-06024a14deb7", 
+    "messageKeys": {}, 
+    "companyName": "Willow Systems", 
+    "versionLabel": "1.0", 
+    "capabilities": [], 
+    "sdkVersion": "3", 
+    "appKeys": {}, 
+    "longName": "Wordle", 
+    "shortName": "Wordle", 
+    "watchapp": {
+        "watchface": false
+    }, 
+    "resources": {
+        "media": [
+            {
+                "menuIcon": true, 
+                "type": "png", 
+                "name": "IMAGE_MENU_ICON", 
+                "file": "images/menu_icon.png"
+            }, 
+            {
+                "type": "png", 
+                "name": "IMAGE_LOGO_SPLASH", 
+                "file": "images/logo_splash.png"
+            }, 
+            {
+                "type": "png", 
+                "name": "IMAGE_TILE_SPLASH", 
+                "file": "images/tile_splash.png"
+            }, 
+            {
+                "type": "font", 
+                "name": "MONO_FONT_14", 
+                "file": "fonts/UbuntuMono-Regular.ttf"
+            }
+        ]
+    }
+}

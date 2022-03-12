@@ -1,0 +1,41 @@
+{
+  "appKeys": {},
+  "capabilities": [],
+  "companyName": "Willow Systems",
+  "longName": "Wordle",
+  "resources": {
+    "media": [
+      {
+        "file": "images/menu_icon.png",
+        "menuIcon": true,
+        "name": "IMAGE_MENU_ICON",
+        "type": "png"
+      },
+      {
+        "file": "images/logo_splash.png",
+        "name": "IMAGE_LOGO_SPLASH",
+        "type": "png"
+      },
+      {
+        "file": "images/tile_splash.png",
+        "name": "IMAGE_TILE_SPLASH",
+        "type": "png"
+      },
+      {
+        "file": "fonts/UbuntuMono-Regular.ttf",
+        "name": "MONO_FONT_14",
+        "type": "font"
+      }
+    ]
+  },
+  "sdkVersion": "3",
+  "shortName": "Wordle",
+  "targetPlatforms": [
+    "basalt"
+  ],
+  "uuid": "5f0b5926-29bd-4e9e-aa15-06024a14deb7",
+  "versionLabel": "1.0",
+  "watchapp": {
+    "watchface": false
+  }
+}
