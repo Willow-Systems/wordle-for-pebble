@@ -15,6 +15,11 @@ var Wordle = require('./wordle.js');
 // const guess_letters = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"];
 const guess_letters = ["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"];
 
+//True when a modal is active. Means you can only press back
+var reduced_input_mode = false;
+var active_screen = "home";
+var grid_drawn = false;
+
 var guessState = {
     word: 0,
     letter: 0,
@@ -98,6 +103,7 @@ function draw_grid(guess_number, letter_number) {
     }
 
     console.log(guessState.lettersOnBoard)
+    grid_drawn = true;
 
     // var posX = 8
     // var posY = 20
@@ -220,11 +226,19 @@ function draw_home() {
     window_home.show();
 }
 window_home.on('click', 'select', function() {
-    draw_grid();
-    window.add(selectangle);
+    if (reduced_input_mode) { return }
+    active_screen = "main"
+
+    if (! grid_drawn) {
+        draw_grid();
+        window.add(selectangle);
+    } else {
+        window.show()
+    }
 })
 
 window.on('click', 'up', function() {
+    if (reduced_input_mode) { return }
     console.log('Up clicked!');
     guessState.selected_letter++;
     if (guessState.selected_letter > 25) {
@@ -242,6 +256,7 @@ window.on('click', 'up', function() {
 });
 
 window.on('click', 'down', function() {
+    if (reduced_input_mode) { return }
     console.log('Down clicked!');
     guessState.selected_letter--;
     if (guessState.selected_letter < 0) {
@@ -260,6 +275,7 @@ window.on('click', 'down', function() {
 });
 
 window.on('click', 'select', function() {
+    if (reduced_input_mode) { return }
     if (guessState.letter < 4) {
 
         console.log('select clicked!');
@@ -298,11 +314,21 @@ window.on('click', 'select', function() {
                 create_won_modal()
             }
 
-            guessState.letter = 0;
-            guessState.word++;
-            selectangle.animate({position: new Vector(8, selectangle.position().y + width)})
-            guessState.selected_letters = [-1,-1,-1,-1,-1];
+            if (guessState.word == 5) {
+            
+                console.log("Ran out of Guesses");
+                create_lost_modal();
+                return
 
+            } else {
+             
+                // Next word
+                guessState.letter = 0;
+                guessState.word++;
+                selectangle.animate({position: new Vector(8, selectangle.position().y + width)})
+                guessState.selected_letters = [-1,-1,-1,-1,-1];
+                
+            }
         }
 
 
@@ -317,6 +343,13 @@ window.on('click', 'back', function() {
         // selectangle.position(new Vector(selectangle.position().x - width, selectangle.position().y))
         selectangle.animate({position: new Vector(selectangle.position().x - width, selectangle.position().y)})
         guessState.selected_letter = guessState.selected_letters[guessState.letter];
+    } else {
+        if (active_screen == "main") {
+            window.hide()
+        }
+        if (active_screen == "home") {
+            window_home.hide()
+        }
     }
 });
 
@@ -352,6 +385,40 @@ function create_won_modal() {
     window.add(win_title);
     win_modal.animate({position: new Vector(15, 15)})
     win_title.animate({position: new Vector(15, 30)})
+    reduced_input_mode = true
+}
+
+function create_lost_modal() {
+    var lose_modal = new UI.Rect({
+        size: new Vector(Feature.resolution().x - 30, Feature.resolution().y - 30),
+        position: new Vector(15, Feature.resolution().y),
+        borderColor: "black",
+        backgroundColor: "white",
+        borderWidth: 3
+    });
+    var lose_title = new UI.Text({
+        text: "You Lost!",
+        font: "gothic-18-bold",
+        position: new Vector(30, Feature.resolution().y),
+        color: "black",
+        size: new Vector(100,40),
+        textAlign: "center"
+    });
+    var lose_reveal = new UI.Text({
+        text: "The word was '" + Wordle.get_word() + "'",
+        font: "gothic-14",
+        position: new Vector(30, Feature.resolution().y),
+        color: "black",
+        size: new Vector(100,40),
+        textAlign: "center"
+    });
+    window.add(lose_modal);
+    window.add(lose_title);
+    window.add(lose_reveal);
+    lose_modal.animate({position: new Vector(15, 15)})
+    lose_title.animate({position: new Vector(15, 30)})
+    lose_reveal.animate({position: new Vector(15, 70)})
+    reduced_input_mode = true
 
 }
 
@@ -361,9 +428,9 @@ function create_won_modal() {
 // guessState.selected_letters = [0,1,14,20,19];
 
 init();
-draw_grid(guessState.word, guessState.letter);
-// draw_home();
-window.add(selectangle);
+// draw_grid(guessState.word, guessState.letter);
+draw_home();
+// window.add(selectangle);
 
 console.log("=========")
 console.log(" TESTING ")
