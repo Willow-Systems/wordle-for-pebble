@@ -5,6 +5,8 @@ Full writeup coming soon
 
 I wrote a wordle clone for the Pebble smartwatch using PebbleJS.
 
+[View in the Rebble appstore](https://apps.rebble.io/en_US/application/622e0e5a4a1ad20009ffd783)
+
 ![](/store_images/banner.png)
 
 ## How to play
