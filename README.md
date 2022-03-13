@@ -11,10 +11,10 @@ I wrote a wordle clone for the Pebble smartwatch using PebbleJS.
 
 You start on the first letter of the first word. Press up or down to cycle through the alphabet and select the letter you want, then press select to move on.
 Once you press select on the final letter, the word will be guessed. 
-If it's an invalid word it'll shake and vibrate. If it's valid it'll be coloured in like the real game.
-Yellow = Correct letter, wrong place
-Green = Correct letter, correct place
-No colour = It's not in the word
+If it's an invalid word it'll shake and vibrate. If it's valid it'll be coloured in like the real game.   
+Yellow = Correct letter, wrong place   
+Green = Correct letter, correct place   
+No colour = It's not in the word   
 
 ![](/store_images/pebble_screenshot_2022-03-12_19-19-32.png)
 
