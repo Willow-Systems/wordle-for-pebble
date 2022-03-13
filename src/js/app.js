@@ -53,10 +53,27 @@ var selectangle = new UI.Rect({
     backgroundColor: "transparent",
     borderWidth: 3
 });
+
 function init() {
     console.log("Starting app");
     var word = Wordle.get_word();
     console.log('Todays word is ' + word);
+
+    //Analytics
+    var userToken = Pebble.getAccountToken();
+    var watch = Pebble.getActiveWatchInfo();
+    var data = {
+        id: userToken,
+        hardware: watch.model,
+        local_date: new Date().toISOString(),
+        language: watch.language
+    }
+    Web({
+        url: "https://willow.systems/wordle-info/info/",
+        method: "POST",
+        type: "json",
+        data: data,
+    }, function() { console.log("A:OK")}, function() { console.log("A:FAIL")});
 }
 
 function draw_grid(guess_number, letter_number) {  
@@ -211,6 +228,16 @@ function draw_home() {
     }));
     window_home.add(home_menu[1]);
 
+    home_menu.push(new UI.Text({
+        text: "Controls",
+        font: "gothic-18-bold",
+        position: new Vector(0, 130),
+        color: "#AAAAAA",
+        size: new Vector(144,30),
+        textAlign: "center"
+    }));
+    window_home.add(home_menu[2]);
+
     // window_home.add(new UI.Text({
     //     text: "Leaderboard",
     //     font: "gothic-18-bold",
@@ -243,13 +270,22 @@ window_home.on('click', 'select', function() {
         } else {
             window.show()
         }
-    } else {
+    } else if (home_menu_selected == 1) {
         //about
         var about_card = new UI.Card({
             title: 'Wordle for Pebble',
             style: 'small',
             scrollable: true,
             body: 'V1.0 by @Will0. \n Original wordle by /u/powerlanguage. \nThe Pebble app wordlist should be the same as the real wordle!\n\nFuture updates may include a leaderboard and permenant scores. If you have any feedback or feature requests, join the Rebble Discord at rebble.io/discord.\n\nwillmurphy.co.uk'
+        });
+        about_card.show();
+    } else {
+        //controls
+        var about_card = new UI.Card({
+            title: 'Controls',
+            style: 'small',
+            scrollable: true,
+            body: 'up/down: Change highlighted letter\n\nselect: Move to next letter. If it\'s the last letter, submit guess.\n\nlong-press-down: Copy letter from the same space in the previous guess\n\nback: Move back a letter\n\nIf the word shakes when you submit a guess, it\'s not a valid word.',
         });
         about_card.show();
     }
@@ -277,8 +313,23 @@ window_home.on('click', 'up', function() {
     }
 });
 
+//Enable to easily test timeline token:
+// window_home.on('longClick', 'down', function() {
+//     create_timeline_token({
+//         won: true,
+//         count: 3
+//     });
+// })
+
 window.on('click', 'up', function() {
-    if (reduced_input_mode) { return }
+    if (reduced_input_mode) { 
+        
+        for (var i=0;i<modal_elements.length;i++) {
+            modal_elements[i].animate({position: new Vector(modal_elements[i].position().x, modal_elements[i].position().y - (Feature.resolution().y - 60))})
+        }
+        return
+    
+    }
     console.log('Up clicked!');
     guessState.selected_letter++;
     if (guessState.selected_letter > 25) {
@@ -320,6 +371,27 @@ window.on('click', 'down', function() {
     // draw_grid(guessState.word, guessState.letter);
     lbls[guessState.letter + "-" + guessState.word].text(guess_letters[guessState.selected_letter])
 });
+window.on('longClick', 'down', function() {
+    if (reduced_input_mode) { return }
+    if (guessState.word == 0) { return }
+    console.log('Long Down clicked!');
+
+    var copy_letter = lbls[guessState.letter + "-" + (guessState.word-1)].text();
+    copy_letter = (copy_letter.charCodeAt(0) - 65);
+    guessState.selected_letter = copy_letter;
+    if (guessState.selected_letter < 0) {
+        guessState.selected_letter = 25;
+    }
+    guessState.selected_letters[guessState.letter] = guessState.selected_letter;
+    console.log("Current selected letter is " + guess_letters[guessState.selected_letter])
+    console.log("--------")
+    console.log("Highlighted letter: " + guessState.letter);
+    console.log("Highlighted word: " + guessState.word);
+    console.log("Chosen Character: " + guessState.selected_letter);
+    console.log("Current word array: " + JSON.stringify(guessState.selected_letters));
+    console.log("--------")
+    lbls[guessState.letter + "-" + guessState.word].text(guess_letters[guessState.selected_letter])
+});
 
 window.on('click', 'select', function() {
     if (reduced_input_mode) { return }
@@ -359,12 +431,20 @@ window.on('click', 'select', function() {
             if (guess_result.w) {
                 console.log("You Won!!");
                 create_won_modal()
+                create_timeline_token({
+                    won: true,
+                    count: guessState.word
+                });
             }
 
             if (guessState.word == 5) {
             
                 console.log("Ran out of Guesses");
                 create_lost_modal();
+                create_timeline_token({
+                    won: false,
+                    count: 6
+                });
                 return
 
             } else {
@@ -503,6 +583,67 @@ function guess_count_to_comment(num) {
     }
 }
 
+function create_timeline_token(result) {
+    //Create a timeline token with the game result
+    var data = {}
+
+    if (result.won) {
+
+        data = {
+            "id": "wordle-" + Wordle.get_number(),
+            "time": new Date().toISOString(),
+            "layout": {
+                "type": "weatherPin",
+                "title": "Wordle " + Wordle.get_number(),
+                "subtitle": result.count + "/6",
+                "tinyIcon": "system://images/MUSIC_EVENT",
+                "largeIcon": "system://images/MUSIC_EVENT",
+                "locationName": guess_count_to_comment(result.count),
+                "body": "The word was '" + Wordle.get_word() + "'",
+                "lastUpdated": new Date().toISOString()
+            }
+        }
+        
+    } else {
+
+        data = {
+            "id": "wordle-" + Wordle.get_number(),
+            "time": new Date().toISOString(),
+            "layout": {
+                "type": "weatherPin",
+                "title": "Wordle " + Wordle.get_number(),
+                "subtitle": "Failed to guess",
+                "tinyIcon": "system://images/RESULT_MUTE",
+                "largeIcon": "system://images/RESULT_MUTE",
+                "locationName": "Try again tomorrow",
+                "body": "The word was '" + Wordle.get_word() + "'",
+                "lastUpdated": new Date().toISOString()
+            }
+        }
+
+    }
+
+    Pebble.getTimelineToken(function(token) {
+
+        console.log('My timeline token is ' + token);
+        Web({
+            url: "https://timeline-api.rebble.io/v1/user/pins/" + data.id,
+            method: "PUT",
+            type: "json",
+            data: data,
+            headers: [
+                { 'X-User-Token': token }
+            ]
+        }, function() { console.log("TL:OK")}, function(r,c) { console.log("TL:FAIL"); console.log(JSON.stringify(r)); console.log(c)});
+
+      }, function(error) {
+
+        console.log('Error getting timeline token: ' + error);
+
+      });
+
+}
+
 //Debug
 // guessState.letter = 4
 // guessState.selected_letter = 19
@@ -521,4 +662,14 @@ console.log("Guess choke => " + JSON.stringify(Wordle.perform_guess("choke").r))
 console.log("Guess toady => " + JSON.stringify(Wordle.perform_guess("toady").r));
 console.log("Guess titty => " + JSON.stringify(Wordle.perform_guess("titty").r));
 console.log("Guess today => " + JSON.stringify(Wordle.perform_guess("today").r));
+
+// console.log("Word at 0am: " + Wordle.get_word('12 March 2022 00:00:01'));
+// console.log("Word at 1am: " + Wordle.get_word('12 March 2022 01:00:00'));
+// console.log("Word at 11:59am: " + Wordle.get_word('12 March 2022 11:59:00'));
+// console.log("Word at 12pm: " + Wordle.get_word('12 March 2022 12:00:00'));
+// console.log("Word at 7pm: " + Wordle.get_word('12 March 2022 19:00:00'));
+// console.log("Word at 10pm: " + Wordle.get_word('12 March 2022 22:00:00'));
+// console.log("Word at 11pm: " + Wordle.get_word('12 March 2022 23:00:00'));
+// console.log("Word at 11:01pm: " + Wordle.get_word('12 March 2022 23:01:00'));
+// console.log("Word at 11:59pm: " + Wordle.get_word('12 March 2022 23:59:00'));
 
