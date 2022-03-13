@@ -424,6 +424,12 @@ window.on('longClick', 'down', function() {
     if (debug) { console.log("Current word array: " + JSON.stringify(guessState.selected_letters)); }
     if (debug) { console.log("--------") }
     lbls[guessState.letter + "-" + guessState.word].text(guess_letters[guessState.selected_letter])
+
+    if (guessState.unused_letters.indexOf(guessState.selected_letter) == -1) {
+        lbls[guessState.letter + "-" + guessState.word].color("black");
+    } else {
+        lbls[guessState.letter + "-" + guessState.word].color("#AAAAAA");
+    }
 });
 
 window.on('click', 'select', function() {
