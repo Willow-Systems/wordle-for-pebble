@@ -8,9 +8,10 @@ var UI = require('ui');
 var Vector = require('vector2');
 var Web = require('ajax');
 var Feature = require('platform/feature');
-var Light = require('ui/light');
 var Vibe = require('ui/vibe');
 var Wordle = require('./wordle.js');
+
+const debug = false;
 
 // const guess_letters = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"];
 const guess_letters = ["A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"];
@@ -29,8 +30,8 @@ var guessState = {
     letter: 0,
     selected_letter: -1,
     selected_letters: [-1,-1,-1,-1,-1],
-    line: [],
-    lettersOnBoard: {}
+    lettersOnBoard: {},
+    unused_letters: []
 }
 var lbls = {}
 var rects = {}
@@ -55,9 +56,9 @@ var selectangle = new UI.Rect({
 });
 
 function init() {
-    console.log("Starting app");
+    if (debug) { console.log("Starting app") }
     var word = Wordle.get_word();
-    console.log('Todays word is ' + word);
+    if (debug) { console.log('Todays word is ' + word) }
 
     //Analytics
     var userToken = Pebble.getAccountToken();
@@ -81,7 +82,7 @@ function draw_grid(guess_number, letter_number) {
     // var posY = 20
     var posY = 3
 
-    console.log("Each square is " + width + " wide.")
+    if (debug) { console.log("Each square is " + width + " wide.") }
 
     guessState.lettersOnBoard[letter_number + "-" + guess_number] = guess_letters[guessState.selected_letter]
 
@@ -123,37 +124,9 @@ function draw_grid(guess_number, letter_number) {
         posX = 8;
     }
 
-    console.log(guessState.lettersOnBoard)
+    if (debug) { console.log(guessState.lettersOnBoard) }
     grid_drawn = true;
 
-    // var posX = 8
-    // var posY = 20
-    // for (var j=0; j < 5;j++) {
-    //     for (var i=0; i<5;i++) {
-    //         if (guessState.lettersOnBoard.hasOwnProperty(i + "-" + j)) {
-                
-    //             console.log(i + ":" + j + " is '" + guessState.lettersOnBoard[i + "-" + j] + "'")
-
-    //             var lbl = new UI.Text({
-    //                 text: guessState.lettersOnBoard[i + "-" + j],
-    //                 font: "gothic-18-bold",
-    //                 position: new Vector(posX, posY)
-    //             });
-    //             window.add(lbl);
-
-    //         }
-    //         posX += width;
-    //     }
-
-    //     posX = 8;
-    //     posY += width;
-       
-    // }
-
-
-
-
-   window.show();
 }
 
 function shake() {
@@ -330,20 +303,27 @@ window.on('click', 'up', function() {
         return
     
     }
-    console.log('Up clicked!');
+    if (debug) { console.log('Up clicked!'); }
     guessState.selected_letter++;
     if (guessState.selected_letter > 25) {
         guessState.selected_letter = 0;
     }
     guessState.selected_letters[guessState.letter] = guessState.selected_letter;
-    console.log("--------")
-    console.log("Highlighted letter: " + guessState.letter);
-    console.log("Highlighted word: " + guessState.word);
-    console.log("Chosen Character: " + guessState.selected_letter);
-    console.log("Current word array: " + JSON.stringify(guessState.selected_letters));
-    console.log("--------")
-    // draw_grid(guessState.word, guessState.letter);
+    
+    if (debug) { console.log("--------") }
+    if (debug) { console.log("Highlighted letter: " + guessState.letter); }
+    if (debug) { console.log("Highlighted word: " + guessState.word); }
+    if (debug) { console.log("Chosen Character: " + guessState.selected_letter); }
+    if (debug) { console.log("Current word array: " + JSON.stringify(guessState.selected_letters)); }
+    if (debug) { console.log("--------") }
+
     lbls[guessState.letter + "-" + guessState.word].text(guess_letters[guessState.selected_letter])
+
+    if (guessState.unused_letters.indexOf(guessState.selected_letter) == -1) {
+        lbls[guessState.letter + "-" + guessState.word].color("black");
+    } else {
+        lbls[guessState.letter + "-" + guessState.word].color("#AAAAAA");
+    }
 });
 
 window.on('click', 'down', function() {
@@ -355,26 +335,33 @@ window.on('click', 'down', function() {
         return
     
     }
-    console.log('Down clicked!');
+    if (debug) { console.log('Down clicked!'); }
     guessState.selected_letter--;
     if (guessState.selected_letter < 0) {
         guessState.selected_letter = 25;
     }
     guessState.selected_letters[guessState.letter] = guessState.selected_letter;
-    console.log("Current selected letter is " + guess_letters[guessState.selected_letter])
-    console.log("--------")
-    console.log("Highlighted letter: " + guessState.letter);
-    console.log("Highlighted word: " + guessState.word);
-    console.log("Chosen Character: " + guessState.selected_letter);
-    console.log("Current word array: " + JSON.stringify(guessState.selected_letters));
-    console.log("--------")
-    // draw_grid(guessState.word, guessState.letter);
-    lbls[guessState.letter + "-" + guessState.word].text(guess_letters[guessState.selected_letter])
+
+    if (debug) { console.log("Current selected letter is " + guess_letters[guessState.selected_letter]) }
+    if (debug) { console.log("--------") }
+    if (debug) { console.log("Highlighted letter: " + guessState.letter); }
+    if (debug) { console.log("Highlighted word: " + guessState.word); }
+    if (debug) { console.log("Chosen Character: " + guessState.selected_letter); }
+    if (debug) { console.log("Current word array: " + JSON.stringify(guessState.selected_letters)); }
+    if (debug) { console.log("--------") }
+
+    lbls[guessState.letter + "-" + guessState.word].text(guess_letters[guessState.selected_letter]);
+
+    if (guessState.unused_letters.indexOf(guessState.selected_letter) == -1) {
+        lbls[guessState.letter + "-" + guessState.word].color("black");
+    } else {
+        lbls[guessState.letter + "-" + guessState.word].color("#AAAAAA");
+    }
 });
 window.on('longClick', 'down', function() {
     if (reduced_input_mode) { return }
     if (guessState.word == 0) { return }
-    console.log('Long Down clicked!');
+    if (debug) { console.log('Long Down clicked!'); }
 
     var copy_letter = lbls[guessState.letter + "-" + (guessState.word-1)].text();
     copy_letter = (copy_letter.charCodeAt(0) - 65);
@@ -383,13 +370,13 @@ window.on('longClick', 'down', function() {
         guessState.selected_letter = 25;
     }
     guessState.selected_letters[guessState.letter] = guessState.selected_letter;
-    console.log("Current selected letter is " + guess_letters[guessState.selected_letter])
-    console.log("--------")
-    console.log("Highlighted letter: " + guessState.letter);
-    console.log("Highlighted word: " + guessState.word);
-    console.log("Chosen Character: " + guessState.selected_letter);
-    console.log("Current word array: " + JSON.stringify(guessState.selected_letters));
-    console.log("--------")
+    if (debug) { console.log("Current selected letter is " + guess_letters[guessState.selected_letter]) }
+    if (debug) { console.log("--------") }
+    if (debug) { console.log("Highlighted letter: " + guessState.letter); }
+    if (debug) { console.log("Highlighted word: " + guessState.word); }
+    if (debug) { console.log("Chosen Character: " + guessState.selected_letter); }
+    if (debug) { console.log("Current word array: " + JSON.stringify(guessState.selected_letters)); }
+    if (debug) { console.log("--------") }
     lbls[guessState.letter + "-" + guessState.word].text(guess_letters[guessState.selected_letter])
 });
 
@@ -397,49 +384,56 @@ window.on('click', 'select', function() {
     if (reduced_input_mode) { return }
     if (guessState.letter < 4) {
 
-        console.log('select clicked!');
+        if (debug) { console.log('select clicked!'); }
         // selectangle.position(new Vector(selectangle.position().x + width, selectangle.position().y));
         selectangle.animate({position: new Vector(selectangle.position().x + width, selectangle.position().y)})
         guessState.letter++;
         
     } else {
 
-        console.log("SUBMIT GUESS");
+        if (debug) { console.log("SUBMIT GUESS"); }
         var guess_result = submit_guess(guessState.selected_letters);
 
         if (! guess_result.a) {
 
-            console.log("Invalid word");
+            if (debug) { console.log("Invalid word"); }
             shake();
 
         } else {
 
-            console.log("Valid word");
+            if (debug) { console.log("Valid word"); }
 
             for (var i=0;i<guess_result.r.length;i++) {
                 var state = guess_result.r[i];
 
-                console.log("State: "+ state)
+                if (debug) { console.log("State: "+ state) }
                 if (state == "y") {
                     rects[i + "-" + guessState.word].backgroundColor("yellow");
                 } else if (state == "g") {
                     rects[i + "-" + guessState.word].backgroundColor("green");
+                } else {
+                    //Add letter to array of letters we know aren't in the word
+                    if (debug) { console.log("Add " + guessState.selected_letters[i] + " to list of known not included letters") }
+                    if (guessState.unused_letters.indexOf(guessState.selected_letters[i]) == -1) {
+                        guessState.unused_letters.push(guessState.selected_letters[i]);
+                    }
+                    if (debug) { console.log(guessState.unused_letters) }
                 }
 
             }
 
             if (guess_result.w) {
-                console.log("You Won!!");
+                if (debug) { console.log("You Won!!"); }
                 create_won_modal()
                 create_timeline_token({
                     won: true,
-                    count: guessState.word
+                    count: (guessState.word + 1)
                 });
             }
 
             if (guessState.word == 5) {
             
-                console.log("Ran out of Guesses");
+                if (debug) { console.log("Ran out of Guesses"); }
                 create_lost_modal();
                 create_timeline_token({
                     won: false,
@@ -465,7 +459,7 @@ window.on('click', 'select', function() {
 
 window.on('click', 'back', function() {
     if (guessState.letter > 0 && reduced_input_mode == false) {
-        console.log('back clicked!');
+        if (debug) { console.log('back clicked!'); }
         guessState.letter--;
         // selectangle.position(new Vector(selectangle.position().x - width, selectangle.position().y))
         selectangle.animate({position: new Vector(selectangle.position().x - width, selectangle.position().y)})
@@ -486,7 +480,7 @@ function submit_guess(arr) {
         word.push(guess_letters[l]);
     })
     word = word.join("");
-    console.log("Guessed word is: " + word);
+    if (debug) { console.log("Guessed word is: " + word); }
 
     return Wordle.perform_guess(word);
 
@@ -509,7 +503,7 @@ function create_won_modal() {
         textAlign: "center"
     });
     var win_info = new UI.Text({
-        text: guessState.word + "/6 - " + guess_count_to_comment(guessState.word),
+        text: (guessState.word + 1) + "/6 - " + guess_count_to_comment(guessState.word),
         font: "gothic-14",
         position: new Vector(30, Feature.resolution().y),
         color: "black",
@@ -654,14 +648,14 @@ init();
 draw_home();
 // window.add(selectangle);
 
-console.log("=========")
-console.log(" TESTING ")
-console.log("=========")
-console.log("Guess black => " + JSON.stringify(Wordle.perform_guess("choke").r));
-console.log("Guess choke => " + JSON.stringify(Wordle.perform_guess("choke").r));
-console.log("Guess toady => " + JSON.stringify(Wordle.perform_guess("toady").r));
-console.log("Guess titty => " + JSON.stringify(Wordle.perform_guess("titty").r));
-console.log("Guess today => " + JSON.stringify(Wordle.perform_guess("today").r));
+// console.log("=========")
+// console.log(" TESTING ")
+// console.log("=========")
+// console.log("Guess black => " + JSON.stringify(Wordle.perform_guess("choke").r));
+// console.log("Guess choke => " + JSON.stringify(Wordle.perform_guess("choke").r));
+// console.log("Guess toady => " + JSON.stringify(Wordle.perform_guess("toady").r));
+// console.log("Guess titty => " + JSON.stringify(Wordle.perform_guess("titty").r));
+// console.log("Guess today => " + JSON.stringify(Wordle.perform_guess("today").r));
 
 // console.log("Word at 0am: " + Wordle.get_word('12 March 2022 00:00:01'));
 // console.log("Word at 1am: " + Wordle.get_word('12 March 2022 01:00:00'));
