@@ -21,6 +21,10 @@ var reduced_input_mode = false;
 var active_screen = "home";
 var grid_drawn = false;
 var modal_elements = [];
+var has_finished = false;
+
+var exit_elements = [];
+var exit_modal_visible = false;
 
 var home_menu = [];
 var home_menu_selected = 0;
@@ -234,12 +238,18 @@ function draw_home() {
 }
 window_home.on('click', 'select', function() {
 
+    if (exit_modal_visible) {
+        hide_exit_modal()
+        return
+    }
+
     if (home_menu_selected == 0) {
         //play
         active_screen = "main"
         if (! grid_drawn) {
             draw_grid();
             window.add(selectangle);
+            window.show();
         } else {
             window.show()
         }
@@ -285,6 +295,15 @@ window_home.on('click', 'up', function() {
         }
     }
 });
+window_home.on('click', 'back', function() {
+
+    if (has_finished || exit_modal_visible) {
+        window_home.hide()
+    } else {
+        show_exit_modal();
+    }
+
+})
 
 //Enable to easily test timeline token:
 // window_home.on('longClick', 'down', function() {
@@ -305,6 +324,33 @@ window.on('click', 'up', function() {
     }
     if (debug) { console.log('Up clicked!'); }
     guessState.selected_letter++;
+    if (guessState.selected_letter > 25) {
+        guessState.selected_letter = 0;
+    }
+    guessState.selected_letters[guessState.letter] = guessState.selected_letter;
+    
+    if (debug) { console.log("--------") }
+    if (debug) { console.log("Highlighted letter: " + guessState.letter); }
+    if (debug) { console.log("Highlighted word: " + guessState.word); }
+    if (debug) { console.log("Chosen Character: " + guessState.selected_letter); }
+    if (debug) { console.log("Current word array: " + JSON.stringify(guessState.selected_letters)); }
+    if (debug) { console.log("--------") }
+
+    lbls[guessState.letter + "-" + guessState.word].text(guess_letters[guessState.selected_letter])
+
+    if (guessState.unused_letters.indexOf(guessState.selected_letter) == -1) {
+        lbls[guessState.letter + "-" + guessState.word].color("black");
+    } else {
+        lbls[guessState.letter + "-" + guessState.word].color("#AAAAAA");
+    }
+});
+window.on('longClick', 'up', function() {
+    if (reduced_input_mode) { return }
+    if (debug) { console.log('Up clicked!'); }
+    guessState.selected_letter += 13;
+    if (guessState.selected_letter > 25) {
+        guessState.selected_letter = guessState.selected_letter - 25;
+    }
     if (guessState.selected_letter > 25) {
         guessState.selected_letter = 0;
     }
@@ -466,6 +512,7 @@ window.on('click', 'back', function() {
         guessState.selected_letter = guessState.selected_letters[guessState.letter];
     } else {
         if (active_screen == "main") {
+
             window.hide()
         }
         if (active_screen == "home") {
@@ -520,6 +567,7 @@ function create_won_modal() {
     win_title.animate({position: new Vector(15, 30)})
     win_info.animate({position: new Vector(15, 60)})
     reduced_input_mode = true
+    has_finished = true
 }
 
 function create_lost_modal() {
@@ -558,7 +606,48 @@ function create_lost_modal() {
     lose_title.animate({position: new Vector(15, 30)})
     lose_reveal.animate({position: new Vector(15, 70)})
     reduced_input_mode = true
+    has_finished = true
+}
 
+function show_exit_modal() {
+    if (exit_elements.length < 1) {
+        create_exit_confirm_modal()
+        exit_modal_visible = true
+    } else {
+        for (var i=0;i<exit_elements.length;i++) {
+            exit_elements[i].animate({position: new Vector(exit_elements[i].position().x, exit_elements[i].position().y - Feature.resolution().y - 20)})
+            exit_elements[i].animate({position: new Vector(exit_elements[i].position().x, exit_elements[i].position().y + 20)})
+        }
+        exit_modal_visible = true
+    }
+}
+function hide_exit_modal() {
+        for (var i=0;i<exit_elements.length;i++) {
+            exit_elements[i].animate({position: new Vector(exit_elements[i].position().x, exit_elements[i].position().y + Feature.resolution().y)})
+        }
+        exit_modal_visible = false
+}
+function create_exit_confirm_modal() {
+    var ec_modal = new UI.Rect({
+        size: new Vector(114, Feature.resolution().y - 30),
+        position: new Vector(15, 100 + Feature.resolution().y),
+        borderColor: "black",
+        backgroundColor: "white",
+        borderWidth: 3
+    });
+    var ec_text = new UI.Text({
+        text: "Press back again to exit without saving. Press select to cancel.",
+        font: "gothic-14",
+        position: new Vector(16, 102 + Feature.resolution().y),
+        color: "black",
+        size: new Vector(110,60),
+        textAlign: "center"
+    });
+    window_home.add(ec_modal);
+    window_home.add(ec_text);
+    exit_elements.push(ec_modal);
+    exit_elements.push(ec_text);
+    show_exit_modal();
 }
 
 function guess_count_to_comment(num) {
