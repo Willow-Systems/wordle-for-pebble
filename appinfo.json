@@ -17,6 +17,11 @@
         "type": "png"
       },
       {
+        "file": "images/logo_splash.png",
+        "name": "IMAGE_LOGO_SPLASH",
+        "type": "png"
+      },
+      {
         "file": "fonts/UbuntuMono-Regular.ttf",
         "name": "MONO_FONT_14",
         "type": "font"
@@ -28,8 +33,8 @@
   "targetPlatforms": [
     "basalt"
   ],
-  "uuid": "5f0b5926-29bd-4e9e-aa15-06024a14deb7",
-  "versionLabel": "1.0",
+  "uuid": "a4a0b0de-7c6d-4995-a707-7a881891ec7f",
+  "versionLabel": "1.1",
   "watchapp": {
     "watchface": false
   }
