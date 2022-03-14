@@ -465,8 +465,8 @@ window.on('click', 'select', function() {
                     rects[i + "-" + guessState.word].backgroundColor("green");
                 } else {
                     //Add letter to array of letters we know aren't in the word
-                    if (debug) { console.log("Add " + guessState.selected_letters[i] + " to list of known not included letters") }
-                    if (guessState.unused_letters.indexOf(guessState.selected_letters[i]) == -1) {
+                    if (guessState.unused_letters.indexOf(guessState.selected_letters[i]) == - 1 && Wordle.get_word().indexOf(guess_letters[guessState.selected_letters[i]].toLowerCase()) == -1) {
+                        if (debug) { console.log("Add " + guessState.selected_letters[i] + " to list of known not included letters") }
                         guessState.unused_letters.push(guessState.selected_letters[i]);
                     }
                     if (debug) { console.log(guessState.unused_letters) }
