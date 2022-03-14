@@ -8,6 +8,7 @@ var UI = require('ui');
 var Vector = require('vector2');
 var Web = require('ajax');
 var Feature = require('platform/feature');
+var Settings = require('settings');
 var Vibe = require('ui/vibe');
 var Wordle = require('./wordle.js');
 
@@ -196,7 +197,7 @@ function draw_home() {
     window_home.add(home_menu[0]);
 
     home_menu.push(new UI.Text({
-        text: "About",
+        text: "Version",
         font: "gothic-18-bold",
         position: new Vector(0, 100),
         color: "#AAAAAA",
@@ -214,6 +215,15 @@ function draw_home() {
         textAlign: "center"
     }));
     window_home.add(home_menu[2]);
+
+    window_home.add(new UI.Text({
+        text: "#" + Wordle.get_number(),
+        font: "gothic-14",
+        position: new Vector(110, 50),
+        color: "black",
+        size: new Vector(50,30),
+        textAlign: "left"
+    }));
 
     // window_home.add(new UI.Text({
     //     text: "Leaderboard",
@@ -249,6 +259,7 @@ window_home.on('click', 'select', function() {
         if (! grid_drawn) {
             draw_grid();
             window.add(selectangle);
+            loadBoardState();
             window.show();
         } else {
             window.show()
@@ -259,7 +270,7 @@ window_home.on('click', 'select', function() {
             title: 'Wordle for Pebble',
             style: 'small',
             scrollable: true,
-            body: 'V1.0 by @Will0. \n Original wordle by /u/powerlanguage. \nThe Pebble app wordlist should be the same as the real wordle!\n\nFuture updates may include a leaderboard and permenant scores. If you have any feedback or feature requests, join the Rebble Discord at rebble.io/discord.\n\nwillmurphy.co.uk'
+            body: 'V2.0 by @Will0. \n Original wordle by /u/powerlanguage. \n-----\nV2:\nAdded game saving, the option to copy your wordle from the setting page on your phone, and the ability to hide the letters when you finish a game.\nV1:\nInital release.'
         });
         about_card.show();
     } else {
@@ -297,11 +308,11 @@ window_home.on('click', 'up', function() {
 });
 window_home.on('click', 'back', function() {
 
-    if (has_finished || exit_modal_visible) {
+    // if (has_finished || exit_modal_visible) {
         window_home.hide()
-    } else {
-        show_exit_modal();
-    }
+    // } else {
+        // show_exit_modal();
+    // }
 
 })
 
@@ -433,7 +444,12 @@ window.on('longClick', 'down', function() {
 });
 
 window.on('click', 'select', function() {
-    if (reduced_input_mode) { return }
+    if (reduced_input_mode) { 
+
+        toggle_letter_visiblity()
+        return
+
+    }
     if (guessState.letter < 4) {
 
         if (debug) { console.log('select clicked!'); }
@@ -443,7 +459,13 @@ window.on('click', 'select', function() {
         
     } else {
 
-        if (debug) { console.log("SUBMIT GUESS"); }
+        guess_current_word()
+
+    }
+    guessState.selected_letter = guessState.selected_letters[guessState.letter];
+});
+function guess_current_word(disable_animation = false) {
+    if (debug) { console.log("SUBMIT GUESS"); }
         var guess_result = submit_guess(guessState.selected_letters);
 
         if (! guess_result.a) {
@@ -476,7 +498,13 @@ window.on('click', 'select', function() {
 
             if (guess_result.w) {
                 if (debug) { console.log("You Won!!"); }
-                create_won_modal()
+                if (disable_animation) {
+                    //If we don't delay when winning straight after board load, the click events dont fire
+                    setTimeout(create_won_modal, 500);
+                } else {
+                    create_won_modal()
+                    saveBoardState();
+                }
                 create_timeline_token({
                     won: true,
                     count: (guessState.word + 1)
@@ -498,18 +526,20 @@ window.on('click', 'select', function() {
                 // Next word
                 guessState.letter = 0;
                 guessState.word++;
-                selectangle.animate({position: new Vector(8, selectangle.position().y + width)})
+                if (disable_animation) {
+                    selectangle.position(new Vector(8, selectangle.position().y + width));
+                } else {
+                    selectangle.animate({position: new Vector(8, selectangle.position().y + width)})
+                }
                 guessState.selected_letters = [-1,-1,-1,-1,-1];
                 
             }
         }
 
-
-    }
-    guessState.selected_letter = guessState.selected_letters[guessState.letter];
-});
+}
 
 window.on('click', 'back', function() {
+    saveBoardState();
     if (guessState.letter > 0 && reduced_input_mode == false) {
         if (debug) { console.log('back clicked!'); }
         guessState.letter--;
@@ -526,6 +556,11 @@ window.on('click', 'back', function() {
         }
     }
 });
+
+// window.on('longClick', 'select', function() {
+//     // saveBoardState();
+//     loadBoardState();
+// })
 
 function submit_guess(arr) {
     var word = [];
@@ -556,11 +591,11 @@ function create_won_modal() {
         textAlign: "center"
     });
     var win_info = new UI.Text({
-        text: (guessState.word + 1) + "/6 - " + guess_count_to_comment(guessState.word),
+        text: (guessState.word + 1) + "/6 - " + guess_count_to_comment(guessState.word) + "\n\n down - Hide msg\n\n select - Toggle letters",
         font: "gothic-14",
         position: new Vector(30, Feature.resolution().y),
         color: "black",
-        size: new Vector(100,40),
+        size: new Vector(100,80),
         textAlign: "center"
     });
     window.add(win_modal);
@@ -732,6 +767,140 @@ function create_timeline_token(result) {
       });
 
 }
+
+function saveBoardState() {
+    var board = [];
+    for (var word = 0; word<6; word++) {
+        var current_word = []
+        for (var letter=0; letter < 5; letter++) {
+            if (debug) { console.log("Word " + word + ", letter " + letter + " = " + lbls[letter + "-" + word].text()) }
+
+            if (lbls[letter + "-" + word].text() != "") {
+                current_word.push(lbls[letter + "-" + word].text())
+            }
+        }
+        board.push(current_word);
+    }
+
+    if (has_finished) {
+        //Save the colours
+        var colour_board = [];
+        for (var word = 0; word<6; word++) {
+            var current_word = []
+            for (var letter=0; letter < 5; letter++) {
+                if (debug) { console.log("Word " + word + ", letter " + letter + " color = " + rects[letter + "-" + word].backgroundColor()) }
+    
+                if (lbls[letter + "-" + word].text() != "") {
+                    current_word.push(rects[letter + "-" + word].backgroundColor())
+                }
+            }
+            colour_board.push(current_word);
+        }
+    }
+    
+    Settings.data('board', board);
+    Settings.data('game', Wordle.get_number());
+    Settings.data('complete', has_finished);
+    
+    Settings.option('g_num', Wordle.get_number());
+    Settings.option('g_colors', colour_board);
+    Settings.option('g_guesses', guessState.word);
+}
+function loadBoardState() {
+    // var saveData = [["B","O","A","R","D"],["F","I","R","S","T"],["A","P"],[],[],[]];
+    // var saveData = [["B","O","A","R","D"],["F","I","R","S","T"],["S","P","E","L","T"],["S","M","E","L","T"],[],[]];
+    // var saveData = [["B","O","A","R","D"],["F","I","R","S","T"],["S","P","E","L","T"],["S","M"],[],[]];
+
+    var saveData = null;
+
+    if (Settings.data('game') == Wordle.get_number()) {
+        saveData = Settings.data('board');
+    } else {
+        return
+    }
+
+    for (var word = 0; word<6; word++) {
+
+        if (saveData[word].length < 5) {
+
+            guessState.word = word
+            guessState.selected_letters = [];
+
+            for (var letter=0; letter < saveData[word].length; letter++) {
+                guessState.letter = letter
+                lbls[letter + "-" + word].text(saveData[word][letter]);
+                guessState.selected_letters.push(guess_letters.indexOf(saveData[word][letter]))
+                guessState.selected_letter = guess_letters.indexOf(saveData[word][letter]);
+                selectangle.position(new Vector(selectangle.position().x + width, selectangle.position().y));
+            }
+
+            if (saveData[word].length > 0) {
+                selectangle.position(new Vector(selectangle.position().x - width, selectangle.position().y));
+            }
+            
+            for (var i=0; i < 5 - saveData[word].length; i++) {
+                guessState.selected_letters.push(-1)
+            }
+
+            
+            //Skip the last few empty arrays. Incomplete word marks the end of the save data
+            guessState.word = guessState.word - 1;
+            console.log(JSON.stringify(guessState));
+            break;
+
+        } else {
+            //Whole word
+            guessState.word = word
+            guessState.selected_letters = [];
+            for (var letter=0; letter < 5; letter++) {
+
+                guessState.letter = letter
+                //Load letter into label
+                lbls[letter + "-" + word].text(saveData[word][letter]);
+                console.log("Find indexof " + saveData[word][letter])
+                guessState.selected_letters.push(guess_letters.indexOf(saveData[word][letter]))
+
+                
+            }
+            console.log(JSON.stringify(guessState));
+            guess_current_word(true);
+
+        }
+        
+
+    }
+
+}
+function toggle_letter_visiblity() {
+    if (lbls["0-0"].color() == "black") {
+        for (var w=0;w<6;w++) {
+            for (var l=0;l<5;l++) {
+                lbls[l + "-" + w].color(lbls[l + "-" + w].backgroundColor())
+            }
+        }
+    } else {
+        for (var w=0;w<6;w++) {
+            for (var l=0;l<5;l++) {
+                lbls[l + "-" + w].color("black")
+            }
+        }
+    }
+}
+
+Settings.config(
+    { url: 'http://willow.systems/pebble/configs/wordle' },
+    function(e) {
+      console.log('closed configurable');
+  
+      // Show the parsed response
+      console.log(JSON.stringify(e.options));
+  
+      // Show the raw response if parsing failed
+      if (e.failed) {
+        console.log(e.response);
+      }
+    }
+  );
 
 //Debug
 // guessState.letter = 4
