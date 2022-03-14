@@ -1,6 +1,8 @@
 {
   "appKeys": {},
-  "capabilities": [],
+  "capabilities": [
+    "configurable"
+  ],
   "companyName": "Willow Systems",
   "longName": "Wordle",
   "resources": {
@@ -34,7 +36,7 @@
     "basalt"
   ],
   "uuid": "a4a0b0de-7c6d-4995-a707-7a881891ec7f",
-  "versionLabel": "1.1",
+  "versionLabel": "2.0",
   "watchapp": {
     "watchface": false
   }
